@@ -1,0 +1,8 @@
+# Lightweight local inference: OpenCV DNN runs a supplied ONNX detector on CPU.
+opencv-python>=4.8
+numpy>=1.24
+requests>=2.31
+python-dotenv>=1.0
+
+# Optional hosted Gemma vision mode:
+google-genai
