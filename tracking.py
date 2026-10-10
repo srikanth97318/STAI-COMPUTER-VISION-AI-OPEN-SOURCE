@@ -98,7 +98,7 @@ def iou(box_a: Tuple[float, float, float, float],
 
 
 def deduplicate_detections(
-    bboxes: List[Tuple[float, float, float, float]],
+    bboxes: List[Tuple[float, float, float, float, str, Tuple[int, int, int]] | Tuple[float, float, float, float]],
     iou_threshold: float = 0.5,
 ) -> List[Tuple[float, float, float, float]]:
     """Remove overlapping bounding boxes for the same person.
@@ -107,18 +107,26 @@ def deduplicate_detections(
     multiple detections of the same person. It keeps the detection with
     larger area (typically higher confidence) when two boxes have high IoU.
 
+    The function accepts either:
+    - 4-element tuples: (x1, y1, x2, y2) - raw bbox coordinates
+    - 6-element tuples: (x1, y1, x2, y2, label, color) - YOOL/Gemma format
+
     Args:
-        bboxes: List of (x1, y1, x2, y2) tuples in pixel coordinates.
+        bboxes: List of bounding box tuples, either 4 or 6 elements.
         iou_threshold: Boxes with IoU above this value are considered duplicates.
 
     Returns:
-        Deduplicated list of bounding boxes.
+        Deduplicated list of 4-element bounding box tuples (x1, y1, x2, y2).
     """
     if not bboxes:
         return []
 
+    # Normalize to 4-element tuples by taking first 4 elements
+    # This handles both 4-element and 6-element (with label+color) formats
+    bboxes_4d = [tuple(bbox[:4]) for bbox in bboxes]
+
     # Sort by box area (larger boxes first - typically higher confidence)
-    bboxes_sorted = sorted(bboxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
+    bboxes_sorted = sorted(bboxes_4d, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
 
     kept: List[Tuple[float, float, float, float]] = []
     for bbox in bboxes_sorted:
