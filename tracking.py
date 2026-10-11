@@ -98,42 +98,37 @@ def iou(box_a: Tuple[float, float, float, float],
 
 
 def deduplicate_detections(
-    bboxes: List[Tuple[float, float, float, float, str, Tuple[int, int, int]] | Tuple[float, float, float, float]],
+    bboxes: List[Tuple[float, float, float, float, str, Tuple[int, int, int]]],
     iou_threshold: float = 0.5,
-) -> List[Tuple[float, float, float, float]]:
+) -> List[Tuple[float, float, float, float, str, Tuple[int, int, int]]]:
     """Remove overlapping bounding boxes for the same person.
 
     This function prevents the tracker from creating separate tracks for
     multiple detections of the same person. It keeps the detection with
     larger area (typically higher confidence) when two boxes have high IoU.
 
-    The function accepts either:
-    - 4-element tuples: (x1, y1, x2, y2) - raw bbox coordinates
-    - 6-element tuples: (x1, y1, x2, y2, label, color) - YOOL/Gemma format
+    The function preserves the full 6-element tuple format:
+    (x1, y1, x2, y2, label, color)
 
     Args:
-        bboxes: List of bounding box tuples, either 4 or 6 elements.
+        bboxes: List of (x1, y1, x2, y2, label, color) tuples.
         iou_threshold: Boxes with IoU above this value are considered duplicates.
 
     Returns:
-        Deduplicated list of 4-element bounding box tuples (x1, y1, x2, y2).
+        Deduplicated list of 6-element bounding box tuples (x1, y1, x2, y2, label, color).
     """
     if not bboxes:
         return []
 
-    # Normalize to 4-element tuples by taking first 4 elements
-    # This handles both 4-element and 6-element (with label+color) formats
-    bboxes_4d = [tuple(bbox[:4]) for bbox in bboxes]
-
     # Sort by box area (larger boxes first - typically higher confidence)
-    bboxes_sorted = sorted(bboxes_4d, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
+    bboxes_sorted = sorted(bboxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
 
-    kept: List[Tuple[float, float, float, float]] = []
+    kept: List[Tuple[float, float, float, float, str, Tuple[int, int, int]]] = []
     for bbox in bboxes_sorted:
-        x1, y1, x2, y2 = bbox
+        x1, y1, x2, y2, label, color = bbox
         is_duplicate = False
         for kept_bbox in kept:
-            kx1, ky1, kx2, ky2 = kept_bbox
+            kx1, ky1, kx2, ky2, klabel, kcolor = kept_bbox
             iou_val = iou((x1, y1, x2, y2), (kx1, ky1, kx2, ky2))
             if iou_val > iou_threshold:
                 is_duplicate = True
